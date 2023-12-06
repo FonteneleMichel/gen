@@ -14,11 +14,9 @@ class UserRepositoryImpl implements GetUsersUseCase {
       String jsonString = await leituraDoArquivoJson();
       final Map<String, dynamic> jsonData = json.decode(jsonString);
 
-      // Verifique se a chave "mcu" está presente no JSON.
       if (jsonData.containsKey('mcu')) {
         List<dynamic> jsonList = jsonData['mcu'];
 
-        // Mapeie os dados para objetos de entidade.
         List<UserEntity> users = jsonList.map((json) => UserEntity.fromJson(json)).toList();
 
         return users;
@@ -28,17 +26,16 @@ class UserRepositoryImpl implements GetUsersUseCase {
       }
     } catch (e) {
       print('Erro ao obter usuários: $e');
-      return []; // Ou trate o erro de outra maneira, conforme necessário.
+      return [];
     }
   }
 
   Future<String> leituraDoArquivoJson() async {
     try {
-      // Leitura assíncrona do arquivo dos assets.
       return await rootBundle.loadString('assets/mock.json');
     } catch (e) {
       print('Erro ao ler o arquivo JSON dos assets: $e');
-      return ''; // Ou trate o erro de outra maneira, conforme necessário.
+      return '';
     }
   }
 }

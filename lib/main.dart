@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:gen/presenter/get_user.dart';
+import 'package:gen/presenter/user_provider.dart';
+import 'package:provider/provider.dart';
 
-import 'data/user_repository_impl.dart';
 import 'domain/user_entity.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => UserProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -19,7 +24,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Gen'),
     );
   }
 }
@@ -34,27 +39,12 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-  List<UserEntity> _users = [];
-
-  late UserListPresenter _userListPresenter;
+  late UserProvider userProvider;
 
   @override
   void initState() {
     super.initState();
-    _userListPresenter = UserListPresenter(UserRepositoryImpl());
-    _loadUsers();
-  }
-
-  void _loadUsers() async {
-    try {
-      List<UserEntity> users = await _userListPresenter.getUsers();
-      setState(() {
-        _users = users;
-      });
-    } catch (e) {
-      print('Erro ao carregar usuários: $e');
-    }
+    userProvider = Provider.of<UserProvider>(context, listen: false);
   }
 
   @override
@@ -65,36 +55,53 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'Lista de Usuários:',
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _users.length,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text(_users[index].originalTitle),
-                  );
-                },
-              ),
-            ),
-          ],
+        child: FutureBuilder(
+          future: userProvider.loadUsers(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return CircularProgressIndicator();
+            } else if (snapshot.hasError) {
+              return Text('Erro ao carregar usuários: ${snapshot.error}');
+            } else {
+              return Column(
+                children: [
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: userProvider.users.length,
+                      itemBuilder: (context, index) {
+                        UserEntity user = userProvider.users[index];
+
+                        return ListTile(
+                          title: Text(user.title),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('ID: ${user.id}'),
+                              Text('Original Title: ${user.originalTitle}'),
+                              Text('Original Language: ${user.originalLanguage}'),
+                              Text('Overview: ${user.overview}'),
+                              Text('Popularity: ${user.popularity}'),
+                              Text('Release Date: ${user.releaseDate}'),
+                              Text('Vote Average: ${user.voteAverage}'),
+                              Text('Vote Count: ${user.voteCount}'),
+                            ],
+                          ),
+                          leading: Image.network(
+                            'https://image.tmdb.org/t/p/w500${user.posterPath}',
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              );
+            }
+          },
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
     );
-  }
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
   }
 }
